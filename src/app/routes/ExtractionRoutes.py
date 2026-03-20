@@ -1,25 +1,24 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify
+from app.controllers.ExtractionController import ExtractionController
 
-from app.controllers.ExtractionController import extract_pdf
+# Instanciar o controlador
+extraction_controller = ExtractionController()
 
-bp = Blueprint("extractions", __name__)
+# Criar blueprint para as rotas de extracton
+extraction_routes = Blueprint("extractions", __name__)
 
 
-@bp.route("/", methods=["GET"])
+@extraction_routes.route("/", methods=["GET"])
 def home():
+    """Endpoint de status da API."""
     return jsonify({
         "message": "API de Extração de Texto de PDFs",
         "usage": "Envie um POST para /extractions com um arquivo PDF",
-        "example": "curl -F 'file=@seu_arquivo.pdf' http://localhost:5000/extractions",
+        "example": "curl -F 'file=@seu_arquivo.pdf' http://localhost:5000/extractions"
     })
 
 
-@bp.route("/extractions", methods=["POST"])
+@extraction_routes.route("/extractions", methods=["POST"])
 def extractions():
-    file = request.files.get("file")
-    text, error = extract_pdf(file)
-    if error:
-        message, status = error
-        return jsonify({"message": message}), status
-
-    return jsonify({"message": text})
+    """Endpoint para extrair texto de um PDF via upload."""
+    return extraction_controller.extract_pdf()
