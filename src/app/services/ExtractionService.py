@@ -1,43 +1,46 @@
-from werkzeug.datastructures import FileStorage
+from pypdf import PdfReader
+
+from app.extensions import db
 from app.models.Document import Document
-import PyPDF2
 
 
 class ExtractionService:
-    """Serviço responsável pela extração de texto de PDFs."""
-    
     @staticmethod
-    def extract_pdf(file: FileStorage) -> Document:
-        """Extrai texto de um arquivo PDF.
-        
-        Args:
-            file: Arquivo enviado via upload (FileStorage).
-            
-        Returns:
-            Document: Instância contendo nome e conteúdo extraído.
-            
-        Raises:
-            ValueError: Se houver erro na leitura ou validação.
-        """
+    def execute(file):
+        if file is None:
+            raise ValueError("Nenhum arquivo enviado.")
+
+        if file.filename == "":
+            raise ValueError("Arquivo inválido.")
+
+        if not file.filename.lower().endswith(".pdf"):
+            raise ValueError("O arquivo precisa ser um PDF.")
+
         try:
-            reader = PyPDF2.PdfReader(file.stream)
-            
-            text_parts = []
+            reader = PdfReader(file.stream)
+            pages_text = []
+
             for page in reader.pages:
                 page_text = page.extract_text() or ""
-                text_parts.append(page_text)
-            
-            extracted_text = "\n".join(text_parts).strip()
-            
-            if not extracted_text:
+                if page_text.strip():
+                    pages_text.append(page_text)
+
+            content = "\n".join(pages_text).strip()
+
+            if not content:
                 raise ValueError("O PDF não contém texto extraível.")
-            
+
             document = Document(
                 name=file.filename,
-                content=extracted_text
+                content=content
             )
-            
+
+            db.session.add(document)
+            db.session.commit()
+
             return document
-            
-        except Exception as e:
-            raise ValueError(f"Erro ao ler o PDF: {str(e)}")
+
+        except ValueError:
+            raise
+        except Exception as error:
+            raise ValueError(f"Erro ao processar o PDF: {error}")
