@@ -2,11 +2,7 @@ from flask import Flask, jsonify
 
 from app.config import Config
 from app.extensions import db, migrate
-
-# importar models para o Flask-Migrate reconhecer
 from app.models import Document
-
-# importar blueprint
 from app.routes.ExtractionRoutes import extraction_bp
 
 

@@ -1,4 +1,4 @@
-from flask import jsonify, request
+from flask import request, jsonify
 
 from app.services.ExtractionService import ExtractionService
 
@@ -8,6 +8,7 @@ class ExtractionController:
     def store():
         try:
             file = request.files.get("file")
+
             document = ExtractionService.execute(file)
 
             return jsonify({

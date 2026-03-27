@@ -6,7 +6,13 @@ services:
       dockerfile: ./docker/dockerfile
     restart: always
     environment:
-      FLASK_APP: ./src/main
+      FLASK_APP: src/main.py
+      PYTHONPATH: /app/src
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: extractions
+      DB_USER: extractions
+      DB_PASSWORD: extractions
     volumes:
       - ./src:/app/src
       - ./migrations:/app/migrations
@@ -14,6 +20,8 @@ services:
       - "8081:8081"
     networks:
       - network-text-extraction
+    depends_on:
+      - postgres
 
   postgres:
     image: postgres:18.1-alpine
