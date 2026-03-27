@@ -1,49 +1,49 @@
-import PyPDF2
+from pypdf import PdfReader
+from werkzeug.datastructures import FileStorage
 
-def extract(source):
-    try:
-        # Se for string (caminho), abre arquivo
-        if isinstance(source, str):
-            file_obj = open(source, 'rb')
-        else:
-            # Se for objeto file-like (como de Flask), usa diretamente
-            file_obj = source
+from app.extensions import db
+from app.models.Document import Document
 
-        reader = PyPDF2.PdfReader(file_obj)
-        text = ''
-        for page in reader.pages:
-            text += page.extract_text() + '\n'
-        result = text.strip()
 
-        # Fecha arquivo apenas se abrimos nós mesmos
-        if isinstance(source, str):
-            file_obj.close()
+class ExtractionService:
+    @staticmethod
+    def execute(file: FileStorage) -> Document:
+        if file is None:
+            raise ValueError("Nenhum arquivo enviado.")
 
-        return result
-    except Exception as e:
-        raise ValueError(f"Erro ao ler o PDF: {str(e)}")
+        if file.filename == "":
+            raise ValueError("Arquivo inválido.")
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Erro: informe um arquivo PDF.")
-        sys.exit(1)
+        if not file.filename.lower().endswith(".pdf"):
+            raise ValueError("O arquivo precisa ser um PDF.")
 
-    file_path = sys.argv[1]
+        try:
+            reader = PdfReader(file.stream)
+            extracted_pages = []
 
-    if not os.path.exists(file_path):
-        print("Erro: arquivo não encontrado.")
-        sys.exit(1)
+            for page in reader.pages:
+                page_text = page.extract_text() or ""
+                if page_text.strip():
+                    extracted_pages.append(page_text)
 
-    if not file_path.lower().endswith('.pdf'):
-        print("Erro: o arquivo precisa ser um PDF.")
-        sys.exit(1)
+            extracted_text = "\n".join(extracted_pages).strip()
 
-    try:
-        text = extract(file_path)
-        if not text:
-            print("Erro: o PDF não contém texto extraível.")
-            sys.exit(1)
-        print(text)
-    except ValueError as e:
-        print(e)
-        sys.exit(1)
+            if not extracted_text:
+                raise ValueError("O PDF não contém texto extraível.")
+
+            document = Document(
+                name=file.filename,
+                content=extracted_text
+            )
+
+            db.session.add(document)
+            db.session.commit()
+
+            return document
+
+        except ValueError:
+            raise
+
+        except Exception as error:
+            db.session.rollback()
+            raise ValueError(f"Erro ao processar o PDF: {error}")

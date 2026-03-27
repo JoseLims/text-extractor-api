@@ -1,32 +1,30 @@
-from typing import Optional, Tuple
+from flask import request, jsonify
 
-from app.services.ExtractionService import extract
-
-
-def validate_file(file) -> Tuple[bool, Optional[Tuple[str, int]]]:
-    if file is None:
-        return False, ("Nenhum arquivo enviado.", 400)
-
-    if file.filename == "":
-        return False, ("Arquivo inválido.", 400)
-
-    if not file.filename.lower().endswith(".pdf"):
-        return False, ("O arquivo precisa ser um PDF.", 400)
-
-    return True, None
+from app.services.ExtractionService import ExtractionService
 
 
-def extract_pdf(file) -> Tuple[Optional[str], Optional[Tuple[str, int]]]:
-    is_valid, error = validate_file(file)
-    if not is_valid:
-        return None, error
+class ExtractionController:
+    @staticmethod
+    def store():
+        try:
+            file = request.files.get("file")
 
-    try:
-        text = extract(file)
-        if not text:
-            return None, ("O PDF não contém texto extraível.", 400)
+            document = ExtractionService.execute(file)
 
-        return text, None
+            return jsonify({
+                "data": {
+                    "id": document.id,
+                    "name": document.name,
+                    "content": document.content
+                }
+            }), 201
 
-    except Exception as e:
-        return None, (str(e), 500)
+        except ValueError as error:
+            return jsonify({
+                "message": str(error)
+            }), 400
+
+        except Exception:
+            return jsonify({
+                "message": "Erro interno do servidor."
+            }), 500
