@@ -47,3 +47,28 @@ class ExtractionService:
         except Exception as error:
             db.session.rollback()
             raise ValueError(f"Erro ao processar o PDF: {error}")
+
+    @staticmethod
+    def find_by_id(document_id: int):
+        return Document.query.get(document_id)
+
+    @staticmethod
+    def list_all(page=1, limit=10, name=None):
+        query = Document.query
+
+        if name:
+            query = query.filter(Document.name.ilike(f"%{name}%"))
+
+        pagination = query.order_by(Document.id.asc()).paginate(
+            page=page,
+            per_page=limit,
+            error_out=False
+        )
+
+        return {
+            "items": pagination.items,
+            "page": pagination.page,
+            "limit": pagination.per_page,
+            "total": pagination.total,
+            "pages": pagination.pages
+        }
