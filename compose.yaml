@@ -1,0 +1,54 @@
+services:
+  app:
+    container_name: text-extraction-app
+    build:
+      context: .
+      dockerfile: ./docker/dockerfile
+    restart: always
+    environment:
+      FLASK_APP: src/main.py
+      PYTHONPATH: /app/src
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: extractions
+      DB_USER: extractions
+      DB_PASSWORD: extractions
+    volumes:
+      - ./src:/app/src
+      - ./migrations:/app/migrations
+    ports:
+      - "8081:8081"
+    networks:
+      - network-text-extraction
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:18.1-alpine
+    container_name: text-extraction-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: extractions
+      POSTGRES_USER: extractions
+      POSTGRES_PASSWORD: extractions
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "5435:5432"
+    volumes:
+      - text-extraction-postgres:/var/lib/postgresql/data
+    networks:
+      - network-text-extraction
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  text-extraction-postgres:
+    driver: local
+
+networks:
+  network-text-extraction:
+    driver: bridge
