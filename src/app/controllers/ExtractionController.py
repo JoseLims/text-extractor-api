@@ -10,46 +10,56 @@ class ExtractionController:
             file = request.files.get("file")
             document = ExtractionService.execute(file)
 
-            return jsonify({
+            response = jsonify({
                 "data": {
                     "id": document.id,
                     "name": document.name,
                     "content": document.content
                 }
-            }), 201
+            })
+            status_code = 201
 
         except ValueError as error:
-            return jsonify({
+            response = jsonify({
                 "message": str(error)
-            }), 400
+            })
+            status_code = 400
 
         except Exception:
-            return jsonify({
+            response = jsonify({
                 "message": "Erro interno do servidor."
-            }), 500
+            })
+            status_code = 500
+
+        return response, status_code
 
     @staticmethod
     def show(document_id):
         try:
             document = ExtractionService.find_by_id(document_id)
 
-            if not document:
-                return jsonify({
-                    "message": "Documento não encontrado."
-                }), 404
-
-            return jsonify({
+            response = jsonify({
                 "data": {
                     "id": document.id,
                     "name": document.name,
                     "content": document.content
                 }
-            }), 200
+            })
+            status_code = 200
+
+        except LookupError as error:
+            response = jsonify({
+                "message": str(error)
+            })
+            status_code = 404
 
         except Exception:
-            return jsonify({
+            response = jsonify({
                 "message": "Erro interno do servidor."
-            }), 500
+            })
+            status_code = 500
+
+        return response, status_code
 
     @staticmethod
     def index():
@@ -64,7 +74,7 @@ class ExtractionController:
                 name=name
             )
 
-            return jsonify({
+            response = jsonify({
                 "data": [
                     {
                         "id": item.id,
@@ -79,9 +89,13 @@ class ExtractionController:
                     "total": result["total"],
                     "pages": result["pages"]
                 }
-            }), 200
+            })
+            status_code = 200
 
         except Exception:
-            return jsonify({
+            response = jsonify({
                 "message": "Erro interno do servidor."
-            }), 500
+            })
+            status_code = 500
+
+        return response, status_code

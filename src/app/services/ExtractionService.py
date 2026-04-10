@@ -49,8 +49,13 @@ class ExtractionService:
             raise ValueError(f"Erro ao processar o PDF: {error}")
 
     @staticmethod
-    def find_by_id(document_id: int):
-        return Document.query.get(document_id)
+    def find_by_id(document_id: int) -> Document:
+        document = Document.query.get(document_id)
+
+        if not document:
+            raise LookupError("Documento não encontrado.")
+
+        return document
 
     @staticmethod
     def list_all(page=1, limit=10, name=None):
