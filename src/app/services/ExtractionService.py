@@ -3,11 +3,12 @@ from werkzeug.datastructures import FileStorage
 
 from app.extensions import db
 from app.models.Document import Document
+from app.models.Client import Client
 
 
 class ExtractionService:
     @staticmethod
-    def execute(file: FileStorage) -> Document:
+    def execute(file: FileStorage, client_id: int) -> Document:
         if file is None:
             raise ValueError("Nenhum arquivo enviado.")
 
@@ -16,6 +17,13 @@ class ExtractionService:
 
         if not file.filename.lower().endswith(".pdf"):
             raise ValueError("O arquivo precisa ser um PDF.")
+
+        if not client_id:
+            raise ValueError("O client_id é obrigatório.")
+
+        client = Client.query.get(client_id)
+        if not client:
+            raise LookupError("Cliente não encontrado.")
 
         try:
             reader = PdfReader(file.stream)
@@ -33,7 +41,8 @@ class ExtractionService:
 
             document = Document(
                 name=file.filename,
-                content=extracted_text
+                content=extracted_text,
+                client_id=client_id
             )
 
             db.session.add(document)
@@ -42,6 +51,9 @@ class ExtractionService:
             return document
 
         except ValueError:
+            raise
+
+        except LookupError:
             raise
 
         except Exception as error:

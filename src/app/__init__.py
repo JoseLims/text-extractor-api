@@ -2,8 +2,9 @@ from flask import Flask, jsonify
 
 from app.config import Config
 from app.extensions import db, migrate
-from app.models import Document
+from app.models import Client, Document
 from app.routes.ExtractionRoutes import extraction_bp
+from app.routes.ClientRoutes import client_bp
 
 
 def create_app():
@@ -21,5 +22,6 @@ def create_app():
         })
 
     app.register_blueprint(extraction_bp)
+    app.register_blueprint(client_bp)
 
     return app

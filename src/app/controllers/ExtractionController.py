@@ -8,13 +8,20 @@ class ExtractionController:
     def store():
         try:
             file = request.files.get("file")
-            document = ExtractionService.execute(file)
+            client_id = request.form.get("client_id", type=int)
+
+            document = ExtractionService.execute(file, client_id)
 
             response = jsonify({
                 "data": {
                     "id": document.id,
                     "name": document.name,
-                    "content": document.content
+                    "content": document.content,
+                    "client": {
+                        "id": document.client.id,
+                        "name": document.client.name,
+                        "email": document.client.email
+                    }
                 }
             })
             status_code = 201
@@ -24,6 +31,12 @@ class ExtractionController:
                 "message": str(error)
             })
             status_code = 400
+
+        except LookupError as error:
+            response = jsonify({
+                "message": str(error)
+            })
+            status_code = 404
 
         except Exception:
             response = jsonify({
@@ -42,7 +55,12 @@ class ExtractionController:
                 "data": {
                     "id": document.id,
                     "name": document.name,
-                    "content": document.content
+                    "content": document.content,
+                    "client": {
+                        "id": document.client.id,
+                        "name": document.client.name,
+                        "email": document.client.email
+                    }
                 }
             })
             status_code = 200
@@ -79,7 +97,12 @@ class ExtractionController:
                     {
                         "id": item.id,
                         "name": item.name,
-                        "content": item.content
+                        "content": item.content,
+                        "client": {
+                            "id": item.client.id,
+                            "name": item.client.name,
+                            "email": item.client.email
+                        }
                     }
                     for item in result["items"]
                 ],
