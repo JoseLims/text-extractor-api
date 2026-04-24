@@ -17,3 +17,8 @@ def list_extractions():
 @extraction_bp.route("/extractions/<int:document_id>", methods=["GET"])
 def show_extraction(document_id):
     return ExtractionController.show(document_id)
+
+
+@extraction_bp.route("/clients/<int:client_id>/extractions/<int:document_id>", methods=["PUT"])
+def update_extraction(client_id, document_id):
+    return ExtractionController.update(client_id, document_id)
