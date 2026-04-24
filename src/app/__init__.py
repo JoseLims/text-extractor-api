@@ -25,4 +25,5 @@ def create_app():
     app.register_blueprint(extraction_bp)
     app.register_blueprint(client_bp)
     app.register_blueprint(auth_bp)  
+
     return app
