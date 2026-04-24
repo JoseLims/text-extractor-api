@@ -3,11 +3,12 @@ from werkzeug.datastructures import FileStorage
 
 from app.extensions import db
 from app.models.Document import Document
+from app.models.Client import Client
 
 
 class ExtractionService:
     @staticmethod
-    def execute(file: FileStorage) -> Document:
+    def execute(file: FileStorage, client_id: int) -> Document:
         if file is None:
             raise ValueError("Nenhum arquivo enviado.")
 
@@ -16,6 +17,13 @@ class ExtractionService:
 
         if not file.filename.lower().endswith(".pdf"):
             raise ValueError("O arquivo precisa ser um PDF.")
+
+        if not client_id:
+            raise ValueError("O client_id é obrigatório.")
+
+        client = Client.query.get(client_id)
+        if not client:
+            raise LookupError("Cliente não encontrado.")
 
         try:
             reader = PdfReader(file.stream)
@@ -33,7 +41,8 @@ class ExtractionService:
 
             document = Document(
                 name=file.filename,
-                content=extracted_text
+                content=extracted_text,
+                client_id=client_id
             )
 
             db.session.add(document)
@@ -44,6 +53,67 @@ class ExtractionService:
         except ValueError:
             raise
 
+        except LookupError:
+            raise
+
         except Exception as error:
             db.session.rollback()
             raise ValueError(f"Erro ao processar o PDF: {error}")
+
+    @staticmethod
+    def find_by_id(document_id: int) -> Document:
+        document = Document.query.get(document_id)
+
+        if not document:
+            raise LookupError("Documento não encontrado.")
+
+        return document
+
+    @staticmethod
+    def list_all(page=1, limit=10, name=None):
+        query = Document.query
+
+        if name:
+            query = query.filter(Document.name.ilike(f"%{name}%"))
+
+        pagination = query.order_by(Document.id.asc()).paginate(
+            page=page,
+            per_page=limit,
+            error_out=False
+        )
+
+        return {
+            "items": pagination.items,
+            "page": pagination.page,
+            "limit": pagination.per_page,
+            "total": pagination.total,
+            "pages": pagination.pages
+        }
+
+    @staticmethod
+    def update(client_id: int, document_id: int, name: str = None, content: str = None) -> Document:
+        client = Client.query.get(client_id)
+        if not client:
+            raise LookupError("Cliente não encontrado.")
+
+        document = Document.query.filter_by(id=document_id, client_id=client_id).first()
+        if not document:
+            raise LookupError("Extração não encontrada para este cliente.")
+
+        if name is not None:
+            if not name.strip():
+                raise ValueError("O nome da extração não pode estar vazio.")
+            document.name = name.strip()
+
+        if content is not None:
+            if not content.strip():
+                raise ValueError("O conteúdo da extração não pode estar vazio.")
+            document.content = content.strip()
+
+        try:
+            db.session.commit()
+            return document
+
+        except Exception as error:
+            db.session.rollback()
+            raise ValueError(f"Erro ao atualizar a extração: {error}")
