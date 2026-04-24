@@ -122,3 +122,55 @@ class ExtractionController:
             status_code = 500
 
         return response, status_code
+
+    @staticmethod
+    def update(client_id, document_id):
+        try:
+            data = request.get_json()
+
+            if not data:
+                raise ValueError("Os dados da extração não foram enviados.")
+
+            name = data.get("name")
+            content = data.get("content")
+
+            document = ExtractionService.update(
+                client_id=client_id,
+                document_id=document_id,
+                name=name,
+                content=content
+            )
+
+            response = jsonify({
+                "data": {
+                    "id": document.id,
+                    "name": document.name,
+                    "content": document.content,
+                    "client": {
+                        "id": document.client.id,
+                        "name": document.client.name,
+                        "email": document.client.email
+                    }
+                }
+            })
+            status_code = 200
+
+        except LookupError as error:
+            response = jsonify({
+                "message": str(error)
+            })
+            status_code = 404
+
+        except ValueError as error:
+            response = jsonify({
+                "message": str(error)
+            })
+            status_code = 400
+
+        except Exception:
+            response = jsonify({
+                "message": "Erro interno do servidor."
+            })
+            status_code = 500
+
+        return response, status_code

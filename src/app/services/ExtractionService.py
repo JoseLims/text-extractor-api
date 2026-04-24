@@ -89,3 +89,31 @@ class ExtractionService:
             "total": pagination.total,
             "pages": pagination.pages
         }
+
+    @staticmethod
+    def update(client_id: int, document_id: int, name: str = None, content: str = None) -> Document:
+        client = Client.query.get(client_id)
+        if not client:
+            raise LookupError("Cliente não encontrado.")
+
+        document = Document.query.filter_by(id=document_id, client_id=client_id).first()
+        if not document:
+            raise LookupError("Extração não encontrada para este cliente.")
+
+        if name is not None:
+            if not name.strip():
+                raise ValueError("O nome da extração não pode estar vazio.")
+            document.name = name.strip()
+
+        if content is not None:
+            if not content.strip():
+                raise ValueError("O conteúdo da extração não pode estar vazio.")
+            document.content = content.strip()
+
+        try:
+            db.session.commit()
+            return document
+
+        except Exception as error:
+            db.session.rollback()
+            raise ValueError(f"Erro ao atualizar a extração: {error}")
