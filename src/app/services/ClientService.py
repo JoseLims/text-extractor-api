@@ -1,23 +1,25 @@
 from app.extensions import db
 from app.models.Client import Client
+from datetime import datetime
 
 
 class ClientService:
+
     @staticmethod
-    def create(name: str, email: str) -> Client:
-        if not name or not name.strip():
-            raise ValueError("O nome do cliente é obrigatório.")
+    def create(data):
+        name = data.get("name")
+        email = data.get("email")
 
-        if not email or not email.strip():
-            raise ValueError("O email do cliente é obrigatório.")
+        if not name or not email:
+            raise ValueError("Nome e email são obrigatórios.")
 
-        existing_client = Client.query.filter_by(email=email).first()
-        if existing_client:
-            raise ValueError("Já existe um cliente com esse email.")
+        existing = Client.query.filter_by(email=email).first()
+        if existing:
+            raise ValueError("Email já cadastrado.")
 
         client = Client(
-            name=name.strip(),
-            email=email.strip()
+            name=name,
+            email=email
         )
 
         db.session.add(client)
@@ -26,8 +28,8 @@ class ClientService:
         return client
 
     @staticmethod
-    def find_by_id(client_id: int) -> Client:
-        client = Client.query.get(client_id)
+    def find_by_id(client_id: int):
+        client = Client.query.filter_by(id=client_id, deleted_at=None).first()
 
         if not client:
             raise LookupError("Cliente não encontrado.")
@@ -35,29 +37,44 @@ class ClientService:
         return client
 
     @staticmethod
-    def update(client_id: int, name: str, email: str) -> Client:
-        client = Client.query.get(client_id)
+    def list(page=1, limit=10, name=None):
+        query = Client.query.filter_by(deleted_at=None)
+
+        if name:
+            query = query.filter(Client.name.ilike(f"%{name}%"))
+
+        pagination = query.paginate(page=page, per_page=limit, error_out=False)
+
+        return pagination
+
+    @staticmethod
+    def update(client_id: int, data):
+        client = Client.query.filter_by(id=client_id, deleted_at=None).first()
 
         if not client:
             raise LookupError("Cliente não encontrado.")
 
-        if not name or not name.strip():
-            raise ValueError("O nome do cliente é obrigatório.")
+        name = data.get("name")
+        email = data.get("email")
 
-        if not email or not email.strip():
-            raise ValueError("O email do cliente é obrigatório.")
+        if name:
+            client.name = name
 
-        existing_client = Client.query.filter_by(email=email.strip()).first()
-        if existing_client and existing_client.id != client.id:
-            raise ValueError("Já existe um cliente com esse email.")
+        if email:
+            client.email = email
 
-        try:
-            client.name = name.strip()
-            client.email = email.strip()
+        db.session.commit()
 
-            db.session.commit()
-            return client
+        return client
 
-        except Exception as error:
-            db.session.rollback()
-            raise ValueError(f"Erro ao atualizar o cliente: {error}")
+    @staticmethod
+    def delete(client_id: int):
+        client = Client.query.filter_by(id=client_id, deleted_at=None).first()
+
+        if not client:
+            raise LookupError("Cliente não encontrado.")
+
+        client.deleted_at = datetime.utcnow()
+        db.session.commit()
+
+        return True
